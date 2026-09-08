@@ -1,0 +1,15 @@
+.venv/
+.venv-*/
+__pycache__/
+*.pyc
+.ruff_cache/
+# Written by advanced/02-development-certificates, and by nothing that should
+# be committed: a generated authority's private key sits next to its
+# certificate.
+/certs/
+*.crt
+*.key
+*.pem
+# The examples that keep state keep it in a file beside them.
+*.db
+.DS_Store

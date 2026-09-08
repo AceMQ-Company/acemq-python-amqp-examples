@@ -1,0 +1,12 @@
+# Not a package. This file exists so that ruff reads the same settings here as
+# it does in the library, because an example formatted to one house style and
+# copied into a project held to another is an example that arrives with work
+# attached.
+[tool.ruff]
+line-length = 96
+# The floor the library supports, so ruff refuses a rewrite this repository's
+# own supported interpreter could not run.
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]

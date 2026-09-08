@@ -1,0 +1,215 @@
+# Every example is run against a real broker on every push.
+#
+# This is the whole reason the repository can be trusted. Examples rot: the
+# library moves on, the example does not, and a newcomer's first experience is a
+# build error. Running them here turns that into a red build instead. Python
+# makes that more important rather than less — there is no compiler to catch a
+# renamed argument, so an example nobody runs is an example nobody knows about.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The library can change without this repository changing at all, so the
+  # examples are also run on a schedule. A weekly failure here is how we find
+  # out that a released version broke something the documentation still claims.
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  examples:
+    name: run the examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # The library's floor. An example that needs a newer interpreter is an
+          # example somebody cannot run, and the floor is the only version that
+          # proves it.
+          python-version: '3.10'
+          cache: pip
+
+      - name: Lint
+        # The same tool and the same settings as the library, from
+        # pyproject.toml. An example formatted to one house style and copied
+        # into a project held to another arrives with work attached.
+        run: |
+          pip install "ruff>=0.6"
+          ruff check .
+
+      - name: Install the released library
+        # What a reader gets: the pinned release, from the index the
+        # documentation names.
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --quiet --upgrade pip
+          .venv/bin/pip install --quiet -r requirements.txt
+          .venv/bin/python -c "import acemq_amqp; print(acemq_amqp.__version__)"
+
+      - name: Install the library's main branch
+        # For the examples in etc/unreleased.txt, which show capabilities that
+        # landed after 0.3.0 was cut. Resolved from the public repository, not
+        # from a checkout beside this one, so this installs what a reader would
+        # get if they asked for main.
+        run: |
+          python -m venv .venv-main
+          .venv-main/bin/pip install --quiet --upgrade pip
+          .venv-main/bin/pip install --quiet -r requirements-main.txt
+
+      - name: Check etc/unreleased.txt still names real examples
+        # A stale line here would quietly send an example to the wrong
+        # interpreter, or worse, keep one on main after its feature shipped.
+        run: |
+          missing=""
+          while read -r dir; do
+            case "$dir" in ''|\#*) continue ;; esac
+            [ -f "$dir/main.py" ] || missing="$missing $dir"
+          done < etc/unreleased.txt
+          if [ -n "$missing" ]; then
+            echo "::error::etc/unreleased.txt names directories with no main.py:$missing"
+            exit 1
+          fi
+
+      - name: Start a broker
+        run: |
+          docker run -d --name broker \
+            -e HOME=/tmp \
+            -p 5672:5672 \
+            rabbitmq:4-alpine
+          # The broker's own word for it, from this boot. A TCP connect is not
+          # enough: Docker publishes the port before RabbitMQ is listening, and
+          # a connection then succeeds and is immediately reset.
+          started=$(date -u +%Y-%m-%dT%H:%M:%S)
+          for _ in $(seq 1 60); do
+            if docker logs --since "$started" broker 2>&1 | grep -q "Server startup complete"; then
+              echo "the broker is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::the broker never became ready"
+          docker logs broker
+          exit 1
+
+      - name: Start a broker holding the development certificates
+        # advanced/02 needs a TLS listener, and the point of that example is
+        # that the certificates came from the library's own generator rather
+        # than from an openssl incantation nobody can reproduce. So CI
+        # generates them the same way a reader would, and starts a broker on
+        # them.
+        run: |
+          .venv-main/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
+          # The generator writes private keys 0600, which is right for a key and
+          # wrong for a container that runs as another user: RabbitMQ reports an
+          # unreadable key as a listener that failed to start, which is a long
+          # way from what it is.
+          chmod 644 certs/server.key
+          docker run -d --name broker-tls \
+            -e HOME=/tmp \
+            -p 5671:5671 \
+            -v "$PWD/certs:/certs:ro" \
+            -v "$PWD/certs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro" \
+            rabbitmq:4-alpine
+          started=$(date -u +%Y-%m-%dT%H:%M:%S)
+          for _ in $(seq 1 60); do
+            if docker logs --since "$started" broker-tls 2>&1 | grep -q "Server startup complete"; then
+              echo "the TLS broker is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::the TLS broker never became ready"
+          docker logs broker-tls
+          exit 1
+
+      - name: Run every example
+        env:
+          ACEMQ_URL: amqp://guest:guest@localhost:5672/
+          ACEMQ_TLS_URL: amqps://guest:guest@localhost:5671/
+        run: |
+          set -o pipefail
+          failed=""
+          # Every directory holding a main.py, found rather than listed, so an
+          # example added without touching this file is still run.
+          for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
+            if grep -qxF "$dir" etc/unreleased.txt; then
+              python=.venv-main/bin/python
+              label="$dir (main)"
+            else
+              python=.venv/bin/python
+              label="$dir (0.3.0)"
+            fi
+            echo "::group::$label"
+            if ! "$python" "$dir/main.py"; then
+              failed="$failed $dir"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::these examples failed:$failed"
+            exit 1
+          fi
+
+      - name: Run them all a second time
+        # The run that catches an example depending on its own leftovers. Every
+        # one of these deletes the queues it declared; the way that stops being
+        # true is silent, and a second run is the only thing that notices.
+        env:
+          ACEMQ_URL: amqp://guest:guest@localhost:5672/
+          ACEMQ_TLS_URL: amqps://guest:guest@localhost:5671/
+        run: |
+          set -o pipefail
+          failed=""
+          for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
+            if grep -qxF "$dir" etc/unreleased.txt; then
+              python=.venv-main/bin/python
+            else
+              python=.venv/bin/python
+            fi
+            "$python" "$dir/main.py" > /dev/null 2>&1 || failed="$failed $dir"
+          done
+          if [ -n "$failed" ]; then
+            echo "::error::these examples do not survive a second run:$failed"
+            exit 1
+          fi
+
+      - name: Check every example actually ran
+        # A find that matches nothing would make the steps above pass without
+        # running anything at all, which is the quiet way a suite stops testing.
+        run: |
+          count=$(find basic intermediate advanced -name main.py | wc -l | tr -d ' ')
+          if [ "$count" -lt 12 ]; then
+            echo "::error::found only $count examples; expected at least 12"
+            exit 1
+          fi
+          echo "$count examples"
+
+      - name: Check every example carries a README
+        # The code says what it does. The README is where it says what to look
+        # for while it runs, which is the half a reader actually needs.
+        run: |
+          missing=""
+          for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
+            [ -f "$dir/README.md" ] || missing="$missing $dir"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::these examples have no README.md:$missing"
+            exit 1
+          fi
+
+      - name: What the brokers said, if anything went wrong
+        if: failure()
+        run: |
+          docker logs broker
+          docker logs broker-tls

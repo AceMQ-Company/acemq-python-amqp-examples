@@ -1,0 +1,16 @@
+# The released library, from the index the documentation tells you to use.
+#
+# AceMQ for Python is not on PyPI yet, so it is served from a static PEP 503
+# index at https://acemq.org/pypi/ — wheels and sdists as files, each link
+# carrying the sha256 pip verifies before it installs. Everything else here
+# comes from PyPI as usual.
+#
+# pip merges the two indexes and picks the highest version it finds under a
+# name, whichever index it came from, so the version is pinned rather than
+# floated. That is the arrangement with no surprises in it.
+--extra-index-url https://acemq.org/pypi/simple/
+
+# rabbitmq is the transport; prometheus is the registry advanced/03 reports
+# into. The library core has no dependencies at all, which is why every one of
+# these is an extra rather than something the package drags in.
+acemq-amqp[rabbitmq,prometheus]==0.3.0

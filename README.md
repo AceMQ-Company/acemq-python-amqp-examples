@@ -1,0 +1,158 @@
+# AceMQ for Python — examples
+
+[![ci](https://github.com/AceMQ-Company/acemq-python-amqp-examples/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AceMQ-Company/acemq-python-amqp-examples/actions/workflows/ci.yml)
+[![authorship guard](https://github.com/AceMQ-Company/acemq-python-amqp-examples/actions/workflows/attribution-guard.yml/badge.svg?branch=main)](https://github.com/AceMQ-Company/acemq-python-amqp-examples/actions/workflows/attribution-guard.yml)
+[![license](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB)](#requirements)
+
+Runnable examples for [AceMQ for Python](https://github.com/AceMQ-Company/acemq-python-amqp).
+Each one is a single `main.py`: open a directory and the whole example is in
+front of you, with no shared helpers to trace, and a `README.md` beside it saying
+what to look for while it runs.
+
+Every one of them talks to a real broker, and CI runs all fifteen on every push.
+That matters more in Python than in a compiled language: there is no compiler to
+notice a renamed argument, so an example nobody runs is an example nobody knows
+is broken.
+
+## Running one
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+docker compose up -d
+.venv/bin/python basic/01-publish-and-consume/main.py
+```
+
+Point them somewhere else with `ACEMQ_URL`:
+
+```bash
+ACEMQ_URL=amqps://guest:guest@broker:5671/ .venv/bin/python basic/01-publish-and-consume/main.py
+```
+
+Each example declares the queues it needs, deletes them on the way out, and uses
+names nothing else uses. Run any of them twice: the second run should report
+exactly what the first did.
+
+## Where the library comes from
+
+`requirements.txt` resolves the **released** package, `acemq-amqp==0.3.0`, from
+<https://acemq.org/pypi/> — a static PEP 503 index, no account and no
+credential, each link carrying the `sha256` pip verifies before installing. It
+is where the documentation tells you to get the library, so it is where the
+examples get it, and an example that stops working against a release is a red
+build here rather than a surprise for whoever copies it.
+
+Six of the fifteen show capabilities that landed **after** 0.3.0 was cut: the
+five optional codecs, encrypted bodies, development certificates, the saga, the
+scheduler and the OpenTelemetry adapter. There is no released version containing
+them and therefore nothing to pin, so those six resolve the library's `main`
+branch instead:
+
+```bash
+python3 -m venv .venv-main && .venv-main/bin/pip install -r requirements-main.txt
+.venv-main/bin/python basic/05-serialization/main.py
+```
+
+Which six is written down in [`etc/unreleased.txt`](etc/unreleased.txt), one
+directory per line, and CI reads that file to decide which interpreter runs
+which example — and fails if a line names a directory that no longer exists. The
+arrangement is temporary by design: when 0.4.0 is released, every example moves
+to `requirements.txt`, that file empties, and `requirements-main.txt` goes.
+
+## What is here
+
+### basic
+
+| | |
+|---|---|
+| [01-publish-and-consume](basic/01-publish-and-consume) | A durable queue, a confirmed publish, and a consumer that says what it did. |
+| [02-retries-and-dead-letters](basic/02-retries-and-dead-letters) | The attempt counter moving, a message giving up, and a fatal error skipping the wait. |
+| [03-topology-and-drift](basic/03-topology-and-drift) | Printing a topology before applying it, and a broker that refuses a service whose idea of a queue has moved on. |
+| [04-replay](basic/04-replay) | Dead-lettered invoices put back one tenant at a time, and the rest afterwards. |
+| [05-serialization](basic/05-serialization) | JSON, YAML, TOML, XML, Avro and protobuf on one queue, read by one consumer. |
+
+### intermediate
+
+| | |
+|---|---|
+| [01-request-reply](intermediate/01-request-reply) | Ten concurrent questions, each getting its own answer, and a responder failure reaching the caller. |
+| [02-idempotent-consumer](intermediate/02-idempotent-consumer) | One payment delivered four times and charged once — and still once after a restart. |
+| [03-transactional-outbox](intermediate/03-transactional-outbox) | The message and the work in one transaction, and a relay publishing what was committed. |
+| [04-interceptors](intermediate/04-interceptors) | A tenant on every message and every handler timed, without either appearing in a handler. |
+| [05-scheduler](intermediate/05-scheduler) | Deliver this later — and the long one does not hold up the short one. |
+| [06-saga](intermediate/06-saga) | Three systems, no shared transaction, and what is left when a compensation itself fails. |
+
+### advanced
+
+| | |
+|---|---|
+| [01-encrypting-payloads](advanced/01-encrypting-payloads) | Message bodies the broker cannot read, and a keyring that can rotate. |
+| [02-development-certificates](advanced/02-development-certificates) | A TLS broker on a laptop, and the reason its certificates cannot reach production. |
+| [03-metrics-and-health](advanced/03-metrics-and-health) | `/acemq-metrics`, `/acemq-health` and `/acemq-info`, on the same paths as Java, Go and .NET. |
+| [04-tracing](advanced/04-tracing) | A consumer's span joined to the publish that caused it, minutes and processes apart. |
+
+## The one that needs a second broker
+
+`advanced/02-development-certificates` needs a TLS listener holding certificates
+this repository generated, so it is the only example that does not run against
+`docker compose up -d` alone:
+
+```bash
+.venv-main/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
+chmod 644 certs/server.key
+docker compose --profile tls up -d
+.venv-main/bin/python advanced/02-development-certificates/main.py
+```
+
+The `chmod` is not a workaround to skip past. The generator writes private keys
+`0600`, which is right for a key and wrong for a container that runs as another
+user, and RabbitMQ reports an unreadable key as a listener that failed to
+start — a long way from what it is.
+
+## Three things worth knowing before reading any of them
+
+**`connect` is asynchronous, and there is a blocking one.** Everything here uses
+`async with await connect(url)`, because that is what the library is. A program
+that is not running an event loop uses `acemq_amqp.sync.connect`, which is a
+facade over the same engine rather than a second implementation — a loop runs on
+a thread of its own, handlers run on a worker thread, and the envelope rules and
+retry arithmetic are the ones above rather than a copy that can drift.
+
+**`message.envelope.attempt` is the consumer's count, not the publisher's.** The
+envelope carries what the publisher wrote, and a broker redelivering the original
+bytes hands back a header that reads 1 for ever. A retry is *republished* rather
+than requeued, which is what makes the count advance and what makes a retry limit
+mean anything. `basic/02` prints `[1, 2, 3]`.
+
+**A durable queue is a quorum queue.** `Topology().queue(...)` declares
+`x-queue-type: quorum` unless told otherwise, because Java has declared quorum
+since it had deployments and two services that disagree about a queue's type
+cannot both consume it. The exceptions — retry rungs, dead-letter and parked
+queues, and anything exclusive or auto-deleting — are declared classic without
+being asked, because RabbitMQ refuses a quorum queue that is any of those.
+
+## Requirements
+
+Python 3.10 or newer — the library's floor, and what CI runs — and Docker.
+
+## How these stay honest
+
+CI **runs every example against a real broker**, on every push and once a week,
+on the oldest Python the library supports. Then it runs them all a second time,
+which is what catches an example depending on its own leftovers: every one of
+these deletes the queues it declared, and the way that stops being true is
+silent.
+
+The workflow finds examples rather than listing them, so one added without
+touching CI is still run — and it fails if it finds fewer than it expects, since
+a `find` that matches nothing would otherwise pass having run nothing at all. It
+also fails if an example has no `README.md`, because the code says what it does
+and the README is where it says what to look for.
+
+Lint is `ruff check` with the library's own settings, from `pyproject.toml`. An
+example formatted to one house style and copied into a project held to another
+arrives with work attached.
+
+## Licence
+
+Apache 2.0. See [LICENSE](LICENSE).

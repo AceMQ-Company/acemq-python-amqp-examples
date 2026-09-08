@@ -1,0 +1,35 @@
+# Brokers for the examples.
+#
+# `broker` is what all but one of them use. `broker-tls` is for
+# advanced/02-development-certificates and needs the certificates to exist
+# before it starts, so it is in a profile and does not come up with the rest:
+#
+#   python -m acemq_amqp.devcerts --directory certs --broker localhost
+#   chmod 644 certs/server.key
+#   docker compose --profile tls up -d
+services:
+  broker:
+    image: rabbitmq:4-alpine
+    environment:
+      # RabbitMQ writes its Erlang cookie under HOME, and the default in this
+      # image is not writable on every Docker setup. Pointing it at /tmp is the
+      # difference between a broker that starts and one that dies with an
+      # "eacces" nobody can interpret.
+      HOME: /tmp
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  broker-tls:
+    profiles: ["tls"]
+    image: rabbitmq:4-alpine
+    environment:
+      HOME: /tmp
+    ports:
+      - "5671:5671"
+    volumes:
+      # The generator writes a rabbitmq.conf beside the certificates that
+      # points the broker at /certs, which is why the mount is at that path and
+      # not somewhere prettier.
+      - ./certs:/certs:ro
+      - ./certs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
