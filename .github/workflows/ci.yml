@@ -153,8 +153,8 @@ jobs:
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
           count=$(find basic intermediate advanced -name main.py | wc -l | tr -d ' ')
-          if [ "$count" -lt 12 ]; then
-            echo "::error::found only $count examples; expected at least 12"
+          if [ "$count" -lt 20 ]; then
+            echo "::error::found only $count examples; expected at least 20"
             exit 1
           fi
           echo "$count examples"

@@ -10,7 +10,7 @@ Each one is a single `main.py`: open a directory and the whole example is in
 front of you, with no shared helpers to trace, and a `README.md` beside it saying
 what to look for while it runs.
 
-Every one of them talks to a real broker, and CI runs all sixteen on every push.
+Every one of them talks to a real broker, and CI runs all twenty on every push.
 That matters more in Python than in a compiled language: there is no compiler to
 notice a renamed argument, so an example nobody runs is an example nobody knows
 is broken.
@@ -42,7 +42,7 @@ is where the documentation tells you to get the library, so it is where the
 examples get it, and an example that stops working against a release is a red
 build here rather than a surprise for whoever copies it.
 
-All sixteen resolve it. For a while six of them could not: the optional codecs,
+All twenty resolve it. For a while six of them could not: the optional codecs,
 encrypted bodies, development certificates, the saga, the scheduler and the
 OpenTelemetry adapter all landed after 0.3.0 was cut, so those six installed the
 library's `main` branch from a second requirements file and CI ran them under a
@@ -69,6 +69,8 @@ application's decision.
 | [03-topology-and-drift](basic/03-topology-and-drift) | Printing a topology before applying it, and a broker that refuses a service whose idea of a queue has moved on. |
 | [04-replay](basic/04-replay) | Dead-lettered invoices put back one tenant at a time, and the rest afterwards. |
 | [05-serialization](basic/05-serialization) | JSON, YAML, TOML, XML, Avro and protobuf on one queue, read by one consumer. |
+| [06-streams](basic/06-streams) | Six readings written once and read three times, from three different places. |
+| [07-pipelines](basic/07-pipelines) | An order carried through three services by an itinerary, and a failed run resumed where it stopped. |
 
 ### intermediate
 
@@ -81,6 +83,8 @@ application's decision.
 | [05-scheduler](intermediate/05-scheduler) | Deliver this later — and the long one does not hold up the short one. |
 | [06-saga](intermediate/06-saga) | Three systems, no shared transaction, and what is left when a compensation itself fails. |
 | [07-claim-check](intermediate/07-claim-check) | A half-megabyte payload put in a store, 39 bytes on the wire, and the small one still travelling inline. |
+| [08-consumer-groups](intermediate/08-consumer-groups) | Four slow invoices, handled four times faster by four consumers than by one. |
+| [09-schema-evolution](intermediate/09-schema-evolution) | Two services on two versions of one schema, talking to each other anyway. |
 
 ### advanced
 
