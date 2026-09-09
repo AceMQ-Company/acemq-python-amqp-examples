@@ -12,4 +12,7 @@ __pycache__/
 *.pem
 # The examples that keep state keep it in a file beside them.
 *.db
+# The claim-check store, written and removed by intermediate/07-claim-check. It
+# is here for the run that fails before it gets to the removing.
+/intermediate/07-claim-check/payloads/
 .DS_Store

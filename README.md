@@ -10,7 +10,7 @@ Each one is a single `main.py`: open a directory and the whole example is in
 front of you, with no shared helpers to trace, and a `README.md` beside it saying
 what to look for while it runs.
 
-Every one of them talks to a real broker, and CI runs all fifteen on every push.
+Every one of them talks to a real broker, and CI runs all sixteen on every push.
 That matters more in Python than in a compiled language: there is no compiler to
 notice a renamed argument, so an example nobody runs is an example nobody knows
 is broken.
@@ -42,7 +42,7 @@ is where the documentation tells you to get the library, so it is where the
 examples get it, and an example that stops working against a release is a red
 build here rather than a surprise for whoever copies it.
 
-All fifteen resolve it. For a while six of them could not: the optional codecs,
+All sixteen resolve it. For a while six of them could not: the optional codecs,
 encrypted bodies, development certificates, the saga, the scheduler and the
 OpenTelemetry adapter all landed after 0.3.0 was cut, so those six installed the
 library's `main` branch from a second requirements file and CI ran them under a
@@ -80,6 +80,7 @@ application's decision.
 | [04-interceptors](intermediate/04-interceptors) | A tenant on every message and every handler timed, without either appearing in a handler. |
 | [05-scheduler](intermediate/05-scheduler) | Deliver this later — and the long one does not hold up the short one. |
 | [06-saga](intermediate/06-saga) | Three systems, no shared transaction, and what is left when a compensation itself fails. |
+| [07-claim-check](intermediate/07-claim-check) | A half-megabyte payload put in a store, 39 bytes on the wire, and the small one still travelling inline. |
 
 ### advanced
 
