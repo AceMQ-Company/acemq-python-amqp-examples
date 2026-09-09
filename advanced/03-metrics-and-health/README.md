@@ -12,11 +12,13 @@ It binds `127.0.0.1:9464`. Set `ACEMQ_HTTP_PORT` if that is taken.
 ## What to look for
 
 **The counters, with the same names in every language**, so a dashboard built
-against Java reads against Python. Ten consumed, nine accepted, one dead
-lettered, ten published — and the labels (`queue`, `exchange`, `key`) are the
-same too.
+against Java reads against Python. `acemq.consume.total` carries an `outcome`
+tag — nine `acked`, one `dead_lettered` — and `acemq.publish.total` counts the
+ten that went out. The labels (`queue`, `exchange`, `routing.key`) are shared
+too. That claim used to be aspirational: until 0.5.0 this library emitted names
+Java had never heard of.
 
-**`acemq.handler.duration: 10 samples, 0ms fastest, 10ms mean, 22ms slowest`.**
+**`acemq.consume.duration: 10 samples, 0ms fastest, 10ms mean, 22ms slowest`.**
 A distribution rather than an average, because the handler that takes thirty
 seconds once an hour is invisible in a mean.
 
