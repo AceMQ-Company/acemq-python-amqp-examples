@@ -3,11 +3,11 @@
 A consumer's span joined to the publish that caused it, minutes and processes
 apart.
 
-> Needs the library's **main** branch — `acemq_amqp.tracing` landed after 0.3.0,
-> and it needs the `[opentelemetry]` extra plus an SDK.
+> `acemq_amqp.tracing` needs the `[opentelemetry]` extra plus an SDK, both of
+> which `requirements.txt` installs.
 
 ```bash
-.venv-main/bin/python advanced/04-tracing/main.py
+.venv/bin/python advanced/04-tracing/main.py
 ```
 
 ## What to look for

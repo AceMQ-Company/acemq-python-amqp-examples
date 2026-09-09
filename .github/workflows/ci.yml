@@ -57,30 +57,6 @@ jobs:
           .venv/bin/pip install --quiet -r requirements.txt
           .venv/bin/python -c "import acemq_amqp; print(acemq_amqp.__version__)"
 
-      - name: Install the library's main branch
-        # For the examples in etc/unreleased.txt, which show capabilities that
-        # landed after 0.3.0 was cut. Resolved from the public repository, not
-        # from a checkout beside this one, so this installs what a reader would
-        # get if they asked for main.
-        run: |
-          python -m venv .venv-main
-          .venv-main/bin/pip install --quiet --upgrade pip
-          .venv-main/bin/pip install --quiet -r requirements-main.txt
-
-      - name: Check etc/unreleased.txt still names real examples
-        # A stale line here would quietly send an example to the wrong
-        # interpreter, or worse, keep one on main after its feature shipped.
-        run: |
-          missing=""
-          while read -r dir; do
-            case "$dir" in ''|\#*) continue ;; esac
-            [ -f "$dir/main.py" ] || missing="$missing $dir"
-          done < etc/unreleased.txt
-          if [ -n "$missing" ]; then
-            echo "::error::etc/unreleased.txt names directories with no main.py:$missing"
-            exit 1
-          fi
-
       - name: Start a broker
         run: |
           docker run -d --name broker \
@@ -109,7 +85,7 @@ jobs:
         # generates them the same way a reader would, and starts a broker on
         # them.
         run: |
-          .venv-main/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
+          .venv/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
           # The generator writes private keys 0600, which is right for a key and
           # wrong for a container that runs as another user: RabbitMQ reports an
           # unreadable key as a listener that failed to start, which is a long
@@ -143,15 +119,8 @@ jobs:
           # Every directory holding a main.py, found rather than listed, so an
           # example added without touching this file is still run.
           for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
-            if grep -qxF "$dir" etc/unreleased.txt; then
-              python=.venv-main/bin/python
-              label="$dir (main)"
-            else
-              python=.venv/bin/python
-              label="$dir (0.3.0)"
-            fi
-            echo "::group::$label"
-            if ! "$python" "$dir/main.py"; then
+            echo "::group::$dir"
+            if ! .venv/bin/python "$dir/main.py"; then
               failed="$failed $dir"
             fi
             echo "::endgroup::"
@@ -172,12 +141,7 @@ jobs:
           set -o pipefail
           failed=""
           for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
-            if grep -qxF "$dir" etc/unreleased.txt; then
-              python=.venv-main/bin/python
-            else
-              python=.venv/bin/python
-            fi
-            "$python" "$dir/main.py" > /dev/null 2>&1 || failed="$failed $dir"
+            .venv/bin/python "$dir/main.py" > /dev/null 2>&1 || failed="$failed $dir"
           done
           if [ -n "$failed" ]; then
             echo "::error::these examples do not survive a second run:$failed"

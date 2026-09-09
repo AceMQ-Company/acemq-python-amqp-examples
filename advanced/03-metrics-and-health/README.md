@@ -18,9 +18,12 @@ ten that went out. The labels (`queue`, `exchange`, `routing.key`) are shared
 too. That claim used to be aspirational: until 0.5.0 this library emitted names
 Java had never heard of.
 
-**`acemq.consume.duration: 10 samples, 0ms fastest, 10ms mean, 22ms slowest`.**
+**`acemq.consume.duration{outcome="acked"}: 9 samples, 0ms fastest, 9ms mean, 21ms slowest`.**
 A distribution rather than an average, because the handler that takes thirty
-seconds once an hour is invisible in a mean.
+seconds once an hour is invisible in a mean. It carries the same `outcome` tag
+the counter does, so the nine that were acked and the one that was dead-lettered
+are timed apart — a handler that is slow only on the way to failing is the one
+worth finding.
 
 **`aggregate: up {'broker': 'up', 'projections': 'up'}`.** The application's own
 checks and the broker's, worst wins, run at once under a deadline — a probe that
@@ -37,7 +40,7 @@ loop, which is the shape any synchronous web framework will need. Making that
 request *from* the loop is a deadlock, which is why the example fetches on a
 worker thread.
 
-**`prometheus_text with nothing installed: 7 sample lines`.** The same numbers,
+**`prometheus_text with nothing installed: 9 sample lines`.** The same numbers,
 rendered as a scrape body by the library itself. `Metrics` and
 `prometheus_text` need nothing installed at all; `PrometheusObserver` writes
 into a registry the rest of the application already exports. Taking a hard

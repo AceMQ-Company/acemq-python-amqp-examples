@@ -2,10 +2,8 @@
 
 Deliver this message later — and the long one does not hold up the short one.
 
-> Needs the library's **main** branch — the scheduler landed after 0.3.0.
-
 ```bash
-.venv-main/bin/python intermediate/05-scheduler/main.py
+.venv/bin/python intermediate/05-scheduler/main.py
 ```
 
 Takes about nine seconds, most of which is the eight-second reminder waiting.

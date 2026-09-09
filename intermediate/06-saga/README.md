@@ -3,10 +3,8 @@
 Three systems, no shared transaction, and what happens when the third one says
 no.
 
-> Needs the library's **main** branch — the saga landed after 0.3.0.
-
 ```bash
-.venv-main/bin/python intermediate/06-saga/main.py
+.venv/bin/python intermediate/06-saga/main.py
 ```
 
 ## What to look for

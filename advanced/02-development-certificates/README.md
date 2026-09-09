@@ -3,17 +3,17 @@
 A TLS broker on a laptop, and the reason its certificates cannot reach
 production.
 
-> Needs the library's **main** branch — `acemq_amqp.devcerts` landed after
-> 0.3.0, and it needs the `[crypto]` extra.
+> `acemq_amqp.devcerts` needs the `[crypto]` extra, which `requirements.txt`
+> installs.
 
 This is the one example that needs a broker of its own, because it needs a TLS
 listener holding certificates this repository generated:
 
 ```bash
-.venv-main/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
+.venv/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
 chmod 644 certs/server.key
 docker compose --profile tls up -d
-.venv-main/bin/python advanced/02-development-certificates/main.py
+.venv/bin/python advanced/02-development-certificates/main.py
 ```
 
 The `chmod` is worth understanding rather than copying: the generator writes

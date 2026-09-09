@@ -2,11 +2,11 @@
 
 Six formats on one queue, read by one consumer.
 
-> Needs the library's **main** branch — the optional codecs landed after 0.3.0.
-> `.venv-main/bin/python`, or see the repository README.
+> The five optional codecs are extras — `[yaml,toml,protobuf,avro]` — which
+> `requirements.txt` installs. XML needs nothing.
 
 ```bash
-.venv-main/bin/python basic/05-serialization/main.py
+.venv/bin/python basic/05-serialization/main.py
 ```
 
 ## What to look for

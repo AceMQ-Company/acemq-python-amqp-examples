@@ -2,11 +2,11 @@
 
 Message bodies the broker cannot read, and a keyring that can rotate.
 
-> Needs the library's **main** branch — `codecs.encrypted` landed after 0.3.0,
-> and it needs the `[crypto]` extra.
+> `codecs.encrypted` needs the `[crypto]` extra, which `requirements.txt`
+> installs.
 
 ```bash
-.venv-main/bin/python advanced/01-encrypting-payloads/main.py
+.venv/bin/python advanced/01-encrypting-payloads/main.py
 ```
 
 ## What to look for

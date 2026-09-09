@@ -35,29 +35,28 @@ exactly what the first did.
 
 ## Where the library comes from
 
-`requirements.txt` resolves the **released** package, `acemq-amqp==0.3.0`, from
+`requirements.txt` resolves the **released** package, `acemq-amqp==0.5.0`, from
 <https://acemq.org/pypi/> — a static PEP 503 index, no account and no
 credential, each link carrying the `sha256` pip verifies before installing. It
 is where the documentation tells you to get the library, so it is where the
 examples get it, and an example that stops working against a release is a red
 build here rather than a surprise for whoever copies it.
 
-Six of the fifteen show capabilities that landed **after** 0.3.0 was cut: the
-five optional codecs, encrypted bodies, development certificates, the saga, the
-scheduler and the OpenTelemetry adapter. There is no released version containing
-them and therefore nothing to pin, so those six resolve the library's `main`
-branch instead:
+All fifteen resolve it. For a while six of them could not: the optional codecs,
+encrypted bodies, development certificates, the saga, the scheduler and the
+OpenTelemetry adapter all landed after 0.3.0 was cut, so those six installed the
+library's `main` branch from a second requirements file and CI ran them under a
+second interpreter. 0.5.0 carries every one of them, so the second file, the
+second interpreter and the list that decided between them are gone. One
+`requirements.txt`, one `.venv`, and nothing here is proving anything about code
+a reader cannot install.
 
-```bash
-python3 -m venv .venv-main && .venv-main/bin/pip install -r requirements-main.txt
-.venv-main/bin/python basic/05-serialization/main.py
-```
-
-Which six is written down in [`etc/unreleased.txt`](etc/unreleased.txt), one
-directory per line, and CI reads that file to decide which interpreter runs
-which example — and fails if a line names a directory that no longer exists. The
-arrangement is temporary by design: when 0.4.0 is released, every example moves
-to `requirements.txt`, that file empties, and `requirements-main.txt` goes.
+The extras are named in `requirements.txt` rather than dragged in: the library
+core has no dependencies at all, and an examples repository that opens sockets
+and reaches for every codec has to say so. `opentelemetry-sdk` is there for the
+same reason — the library depends on the OpenTelemetry *API* alone and exports
+nothing without an SDK, because an application's telemetry stack is the
+application's decision.
 
 ## What is here
 
@@ -98,10 +97,10 @@ this repository generated, so it is the only example that does not run against
 `docker compose up -d` alone:
 
 ```bash
-.venv-main/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
+.venv/bin/python -m acemq_amqp.devcerts --directory certs --broker localhost
 chmod 644 certs/server.key
 docker compose --profile tls up -d
-.venv-main/bin/python advanced/02-development-certificates/main.py
+.venv/bin/python advanced/02-development-certificates/main.py
 ```
 
 The `chmod` is not a workaround to skip past. The generator writes private keys
