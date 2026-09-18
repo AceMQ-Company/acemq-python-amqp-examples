@@ -35,7 +35,7 @@ exactly what the first did.
 
 ## Where the library comes from
 
-`requirements.txt` resolves the **released** package, `acemq-amqp==0.5.0`, from
+`requirements.txt` resolves the **released** package, `acemq-amqp==0.6.0`, from
 <https://acemq.org/pypi/> — a static PEP 503 index, no account and no
 credential, each link carrying the `sha256` pip verifies before installing. It
 is where the documentation tells you to get the library, so it is where the
