@@ -13,5 +13,5 @@
 # rabbitmq is the transport; prometheus is the registry advanced/03 reports
 # into. The library core has no dependencies at all, which is why every one of
 # these is an extra rather than something the package drags in.
-acemq-amqp[rabbitmq,prometheus,yaml,toml,protobuf,avro,crypto,opentelemetry]==0.6.0
+acemq-amqp[rabbitmq,prometheus,yaml,toml,protobuf,avro,crypto,opentelemetry]==0.7.0
 opentelemetry-sdk>=1.20
