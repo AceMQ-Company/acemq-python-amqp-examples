@@ -35,7 +35,7 @@ exactly what the first did.
 
 ## Where the library comes from
 
-`requirements.txt` resolves the **released** package, `acemq-amqp==0.7.0`, from
+`requirements.txt` resolves the **released** package, `acemq-amqp==0.7.1`, from
 <https://acemq.org/pypi/> — a static PEP 503 index, no account and no
 credential, each link carrying the `sha256` pip verifies before installing. It
 is where the documentation tells you to get the library, so it is where the
@@ -138,14 +138,21 @@ being asked, because RabbitMQ refuses a quorum queue that is any of those.
 ## Requirements
 
 Python 3.10 or newer — the library's floor, and what CI runs — and Docker.
+RabbitMQ **3.13 or 4.x**, the range the library supports; `compose.yaml` brings
+up 4.x and CI runs every example against both.
 
 ## How these stay honest
 
 CI **runs every example against a real broker**, on every push and once a week,
-on the oldest Python the library supports. Then it runs them all a second time,
-which is what catches an example depending on its own leftovers: every one of
-these deletes the queues it declared, and the way that stops being true is
-silent.
+on the oldest Python the library supports and against both broker majors the
+library supports — 3.13 and 4.x. Then it runs them all a second time, which is
+what catches an example depending on its own leftovers: every one of these
+deletes the queues it declared, and the way that stops being true is silent.
+
+Both brokers rather than the newest is a deliberate cost. `basic/03` prints a
+`PRECONDITION_FAILED` straight from the broker, and 3.13 and 4.x word that
+differently — the sort of difference an examples repository exists to find
+before a reader does.
 
 The workflow finds examples rather than listing them, so one added without
 touching CI is still run — and it fails if it finds fewer than it expects, since

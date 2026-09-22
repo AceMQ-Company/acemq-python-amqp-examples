@@ -27,8 +27,19 @@ concurrency:
 
 jobs:
   examples:
-    name: run the examples
+    name: run the examples (rabbitmq ${{ matrix.broker }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both brokers the library supports. 0.7.1 stopped assuming 3.13 worked
+        # and started running against it, and an examples repository that only
+        # ever sees 4.x is back to assuming — on the half of the range a reader
+        # is more likely to be running in production, because it is the older
+        # one. The examples pass on both, and one of them prints a broker error
+        # message verbatim, which is exactly the kind of thing that differs
+        # between majors and would otherwise be found by whoever copied it.
+        broker: ['4-alpine', '3.13-alpine']
     steps:
       - uses: actions/checkout@v4
 
@@ -62,7 +73,7 @@ jobs:
           docker run -d --name broker \
             -e HOME=/tmp \
             -p 5672:5672 \
-            rabbitmq:4-alpine
+            rabbitmq:${{ matrix.broker }}
           # The broker's own word for it, from this boot. A TCP connect is not
           # enough: Docker publishes the port before RabbitMQ is listening, and
           # a connection then succeeds and is immediately reset.
@@ -96,7 +107,7 @@ jobs:
             -p 5671:5671 \
             -v "$PWD/certs:/certs:ro" \
             -v "$PWD/certs/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro" \
-            rabbitmq:4-alpine
+            rabbitmq:${{ matrix.broker }}
           started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           for _ in $(seq 1 60); do
             if docker logs --since "$started" broker-tls 2>&1 | grep -q "Server startup complete"; then
