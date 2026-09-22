@@ -33,6 +33,14 @@ Each example declares the queues it needs, deletes them on the way out, and uses
 names nothing else uses. Run any of them twice: the second run should report
 exactly what the first did.
 
+One thing does stay: `intermediate/05-scheduler` leaves the six
+`acemq.schedule.*` queues behind, because they are not its queues to delete.
+They are the library's retry ladder, declared identically by Java, Go, .NET and
+Ruby, and shared with every other service scheduling on the same broker — an
+example that tidied them away on exit would be throwing out somebody else's
+pending deliveries along with its own. They come back empty, so a second run
+still reports what the first did.
+
 ## Where the library comes from
 
 `requirements.txt` resolves the **released** package, `acemq-amqp==0.7.1`, from
@@ -147,7 +155,8 @@ CI **runs every example against a real broker**, on every push and once a week,
 on the oldest Python the library supports and against both broker majors the
 library supports — 3.13 and 4.x. Then it runs them all a second time, which is
 what catches an example depending on its own leftovers: every one of these
-deletes the queues it declared, and the way that stops being true is silent.
+deletes the queues it declared — the shared scheduler ladder above excepted —
+and the way that stops being true is silent.
 
 Both brokers rather than the newest is a deliberate cost. `basic/03` prints a
 `PRECONDITION_FAILED` straight from the broker, and 3.13 and 4.x word that

@@ -143,8 +143,10 @@ jobs:
 
       - name: Run them all a second time
         # The run that catches an example depending on its own leftovers. Every
-        # one of these deletes the queues it declared; the way that stops being
-        # true is silent, and a second run is the only thing that notices.
+        # one of these deletes the queues it declared, bar the shared
+        # acemq.schedule.* ladder intermediate/05-scheduler is right to leave
+        # alone; the way that stops being true is silent, and a second run is
+        # the only thing that notices.
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
           ACEMQ_TLS_URL: amqps://guest:guest@localhost:5671/
