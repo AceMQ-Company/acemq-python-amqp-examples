@@ -89,6 +89,31 @@ jobs:
           docker logs broker
           exit 1
 
+      - name: Start a broker that advanced/05 is allowed to block
+        # A memory alarm is broker-wide. advanced/05-blocked-broker raises a
+        # real one — that is the whole point of it — and on the shared broker
+        # that would stop every other example publishing, including the
+        # fourteen that run after it and the second run of all twenty-one. It
+        # puts the watermark back in a `finally`, and a broker of its own is
+        # what makes that a tidy-up rather than the only thing standing between
+        # this example and a wall of unrelated red.
+        run: |
+          docker run -d --name blocked-broker \
+            -e HOME=/tmp \
+            -p 5673:5672 \
+            rabbitmq:${{ matrix.broker }}
+          started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          for _ in $(seq 1 60); do
+            if docker logs --since "$started" blocked-broker 2>&1 | grep -q "Server startup complete"; then
+              echo "the blockable broker is up"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::the blockable broker never became ready"
+          docker logs blocked-broker
+          exit 1
+
       - name: Start a broker holding the development certificates
         # advanced/02 needs a TLS listener, and the point of that example is
         # that the certificates came from the library's own generator rather
@@ -124,6 +149,11 @@ jobs:
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
           ACEMQ_TLS_URL: amqps://guest:guest@localhost:5671/
+          # advanced/05 blocks this one, and reaches it with `rabbitmqctl`
+          # inside the container, which is why the name is passed as well as
+          # the URL. compose calls it something else on a laptop.
+          ACEMQ_BLOCKED_URL: amqp://guest:guest@localhost:5673/
+          ACEMQ_BLOCKED_CONTAINER: blocked-broker
         run: |
           set -o pipefail
           failed=""
@@ -150,6 +180,8 @@ jobs:
         env:
           ACEMQ_URL: amqp://guest:guest@localhost:5672/
           ACEMQ_TLS_URL: amqps://guest:guest@localhost:5671/
+          ACEMQ_BLOCKED_URL: amqp://guest:guest@localhost:5673/
+          ACEMQ_BLOCKED_CONTAINER: blocked-broker
         run: |
           set -o pipefail
           failed=""
@@ -166,8 +198,8 @@ jobs:
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
           count=$(find basic intermediate advanced -name main.py | wc -l | tr -d ' ')
-          if [ "$count" -lt 20 ]; then
-            echo "::error::found only $count examples; expected at least 20"
+          if [ "$count" -lt 21 ]; then
+            echo "::error::found only $count examples; expected at least 21"
             exit 1
           fi
           echo "$count examples"
@@ -190,6 +222,12 @@ jobs:
         run: |
           docker logs broker
           docker logs broker-tls
+          # This one has the alarm in it, which is the first thing to check when
+          # advanced/05 fails: "vm_memory_high_watermark set" and the
+          # "memory resource limit alarm set"/"cleared" pair should be there in
+          # that order, and a run that ended with the alarm still set says the
+          # example left without restoring it.
+          docker logs blocked-broker
 
   tracks-the-release:
     name: the pin is the newest release

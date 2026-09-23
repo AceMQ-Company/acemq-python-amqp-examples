@@ -10,7 +10,7 @@ Each one is a single `main.py`: open a directory and the whole example is in
 front of you, with no shared helpers to trace, and a `README.md` beside it saying
 what to look for while it runs.
 
-Every one of them talks to a real broker, and CI runs all twenty on every push.
+Every one of them talks to a real broker, and CI runs all twenty-one on every push.
 That matters more in Python than in a compiled language: there is no compiler to
 notice a renamed argument, so an example nobody runs is an example nobody knows
 is broken.
@@ -50,7 +50,7 @@ is where the documentation tells you to get the library, so it is where the
 examples get it, and an example that stops working against a release is a red
 build here rather than a surprise for whoever copies it.
 
-All twenty resolve it. For a while six of them could not: the optional codecs,
+All twenty-one resolve it. For a while six of them could not: the optional codecs,
 encrypted bodies, development certificates, the saga, the scheduler and the
 OpenTelemetry adapter all landed after 0.3.0 was cut, so those six installed the
 library's `main` branch from a second requirements file and CI ran them under a
@@ -102,11 +102,19 @@ application's decision.
 | [02-development-certificates](advanced/02-development-certificates) | A TLS broker on a laptop, and the reason its certificates cannot reach production. |
 | [03-metrics-and-health](advanced/03-metrics-and-health) | `/acemq-metrics`, `/acemq-health` and `/acemq-info`, on the same paths as Java, Go and .NET. |
 | [04-tracing](advanced/04-tracing) | A consumer's span joined to the publish that caused it, minutes and processes apart. |
+| [05-blocked-broker](advanced/05-blocked-broker) | A real memory alarm, and a health check that reports `up` in microseconds rather than `down` in three seconds. |
 
-## The one that needs a second broker
+## The two that need a broker of their own
+
+`advanced/05-blocked-broker` provokes a genuine memory alarm with
+`rabbitmqctl set_vm_memory_high_watermark 0`. An alarm is broker-wide, so on the
+shared broker it would stop every other example publishing as well — it gets
+`blocked-broker` on 5673 instead, which `docker compose up -d` brings up with the
+rest. Nothing has to be generated first, and the example puts the watermark back
+in a `finally`.
 
 `advanced/02-development-certificates` needs a TLS listener holding certificates
-this repository generated, so it is the only example that does not run against
+this repository generated, so it is the one example that does not run against
 `docker compose up -d` alone:
 
 ```bash

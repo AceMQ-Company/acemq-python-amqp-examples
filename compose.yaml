@@ -1,12 +1,18 @@
 # Brokers for the examples.
 #
-# `broker` is what all but one of them use. `broker-tls` is for
+# `broker` is what all but two of them use. `broker-tls` is for
 # advanced/02-development-certificates and needs the certificates to exist
 # before it starts, so it is in a profile and does not come up with the rest:
 #
 #   python -m acemq_amqp.devcerts --directory certs --broker localhost
 #   chmod 644 certs/server.key
 #   docker compose --profile tls up -d
+#
+# `blocked-broker` is for advanced/05-blocked-broker, which provokes a real
+# memory alarm. That alarm is broker-wide — it would stop every other example
+# publishing, not only the one that asked for it — so it gets a broker of its
+# own rather than a turn on the shared one. It comes up with the rest and needs
+# nothing generated first, so it is not in a profile.
 services:
   broker:
     image: rabbitmq:4-alpine
@@ -19,6 +25,19 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+
+  blocked-broker:
+    image: rabbitmq:4-alpine
+    # Named rather than left to compose, which would call it after whatever the
+    # checkout directory happens to be. advanced/05 raises the alarm by running
+    # `rabbitmqctl` inside this container, so the name is something the example
+    # has to be able to write down — and `ACEMQ_BLOCKED_CONTAINER` is how CI,
+    # which starts its brokers with `docker run`, tells it a different one.
+    container_name: acemq-python-examples-blocked-broker
+    environment:
+      HOME: /tmp
+    ports:
+      - "5673:5672"
 
   broker-tls:
     profiles: ["tls"]
