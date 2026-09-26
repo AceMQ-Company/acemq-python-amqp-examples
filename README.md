@@ -103,6 +103,7 @@ application's decision.
 | [03-metrics-and-health](advanced/03-metrics-and-health) | `/acemq-metrics`, `/acemq-health` and `/acemq-info`, on the same paths as Java, Go and .NET. |
 | [04-tracing](advanced/04-tracing) | A consumer's span joined to the publish that caused it, minutes and processes apart. |
 | [05-blocked-broker](advanced/05-blocked-broker) | A real memory alarm, and a health check that reports `up` in microseconds rather than `down` in three seconds. |
+| [06-a-standing-load-something-else-can-watch](advanced/06-a-standing-load-something-else-can-watch) | A load that does not finish, printing one JSON reading per second — so a fault drill can read what the client saw rather than what the broker did. |
 
 ## The two that need a broker of their own
 
