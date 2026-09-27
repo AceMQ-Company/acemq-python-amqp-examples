@@ -42,10 +42,11 @@ Then read the last few lines at any point to see what the client is seeing. Unde
 fault drill that file is the client's testimony, and `tail -n 60` on it is how the
 drill asks.
 
-It stops on Ctrl-C, or after ACEMQ_EXAMPLE_SECONDS if that is set -- which CI sets,
-because a load with no reason to stop is not a failing example there, it is a job
-that never ends. Unset, it runs until interrupted, which is what a drill campaign
-wants.
+It stops on Ctrl-C, or after ACEMQ_EXAMPLE_SECONDS seconds, which defaults to 60.
+Set ACEMQ_EXAMPLE_SECONDS=0 to run until interrupted -- what a drill campaign wants.
+The default is bounded rather than endless because CI runs every example here with no
+arguments and waits: an endless one is not a failing example, it is a job that runs to
+the six-hour ceiling and is cancelled.
 """
 
 from __future__ import annotations
@@ -70,6 +71,29 @@ QUEUE = "py-standing-load.orders"
 
 RATE = int(os.environ.get("ACEMQ_LOAD_RATE", "200"))
 INTERVAL = float(os.environ.get("ACEMQ_LOAD_INTERVAL", "1"))
+
+# How long to run when nobody said.
+#
+# A minute, not for ever, and that default is deliberate. CI runs every example in
+# this repository with no arguments and waits for each to finish, so an unbounded
+# default is not a failing example -- it is a job that runs to the six-hour ceiling
+# and is then cancelled. That happened, in three repositories at once, and cost
+# about eighteen hours of runner time before anybody looked.
+#
+# So a forgotten setting gives a short run, and "until interrupted" has to be asked
+# for: ACEMQ_EXAMPLE_SECONDS=0, which is what a drill campaign passes.
+DEFAULT_RUN_FOR = 60
+
+
+def run_for_seconds() -> int:
+    """Seconds to run, where 0 means until interrupted."""
+    raw = os.environ.get("ACEMQ_EXAMPLE_SECONDS", "")
+    if not raw:
+        return DEFAULT_RUN_FOR
+    try:
+        return int(raw)
+    except ValueError:
+        return DEFAULT_RUN_FOR
 
 
 class Counters:
@@ -185,7 +209,7 @@ async def main() -> None:
         with contextlib.suppress(NotImplementedError):
             loop.add_signal_handler(sig, stop.set)
 
-    seconds = int(os.environ.get("ACEMQ_EXAMPLE_SECONDS", "0") or 0)
+    seconds = run_for_seconds()
     if seconds > 0:
         loop.call_later(seconds, stop.set)
 
