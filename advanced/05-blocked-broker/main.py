@@ -2,9 +2,11 @@
 
 RabbitMQ protects itself. When it crosses its memory or disk high watermark it
 raises an alarm and stops reading from every connection that publishes:
-`connection.blocked` goes out, and from then on a publish, a declaration, or
-anything else written to that socket simply waits. Nothing fails. Nothing
-arrives either.
+`connection.blocked` goes out, and from then on anything written to that socket
+simply waits. Nothing fails. Nothing arrives either. A publish *made* once the
+block is known is not written at all: it is refused at once with
+`PublishingPausedError`, which says nothing was sent and a retry is safe -- the
+same answer Go, .NET and Java give.
 
 That state is the one a readiness probe gets wrong, because from this end it
 looks exactly like a broker that has gone away — and the two want opposite
@@ -53,6 +55,7 @@ from acemq_amqp import (
     BLOCKED_DETAIL,
     HealthReport,
     HealthStatus,
+    PublishingPausedError,
     Topology,
     connect,
 )
@@ -104,9 +107,9 @@ async def main() -> None:
         stalled: list[asyncio.Task[None]] = []
         try:
             # Fired rather than awaited, which is the whole shape of the
-            # problem. A publish on a blocked connection does not fail, it
-            # waits — so awaiting one here would wait for the alarm this loop
-            # exists to observe. They are collected and settled further down,
+            # problem. A publish already written when the block arrives does
+            # not fail, it waits — so awaiting one here would wait for the
+            # alarm this loop exists to observe. They are collected and settled further down,
             # once the socket is being read again.
             deadline = time.monotonic() + 30
             while not mq.blocked and time.monotonic() < deadline:
@@ -134,6 +137,15 @@ async def main() -> None:
             # inventing a reason here would read exactly like one the broker
             # sent. Java, Go, Ruby and .NET all print the broker's own words.
             print(f"  the broker's reason, as this library can see it: {mq.blocked_reason}")
+
+            # And a publish made now, with the block known, is declined rather
+            # than written: nothing went, so retrying after the unblock cannot
+            # duplicate it.
+            try:
+                await publisher.send({"order": "after the block was known"})
+                print("  a publish made while blocked went through (unexpected)")
+            except PublishingPausedError as refused:
+                print(f"  a publish made while blocked was refused, not lost: {refused}")
         finally:
             # In a `finally` and not at the end of the happy path. Every
             # assertion below is about a broker under an alarm, so every one of

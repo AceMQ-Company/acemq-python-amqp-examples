@@ -23,7 +23,9 @@ One JSON object per line, oldest first, on stdout:
     published    sends attempted since the start
     confirmed    sends the broker has acknowledged
     consumed     deliveries handled
-    failed       sends that failed
+    refused      sends the library declined because the broker had blocked the
+                 connection: nothing was sent, so nothing was lost
+    failed       sends that failed, and may or may not have arrived
     publishRate  confirms per second over the last interval
     consumeRate  deliveries per second over the last interval
 
@@ -59,7 +61,7 @@ import signal
 import sys
 import time
 
-from acemq_amqp import Ack, Message, Topology, accept, connect
+from acemq_amqp import Ack, Message, PublishingPausedError, Topology, accept, connect
 
 URL = os.environ.get("ACEMQ_URL", "amqp://guest:guest@localhost:5672/")
 
@@ -108,6 +110,7 @@ class Counters:
         self.published = 0
         self.confirmed = 0
         self.consumed = 0
+        self.refused = 0
         self.failed = 0
 
 
@@ -122,16 +125,21 @@ async def publish(mq, counters: Counters, stop: asyncio.Event) -> None:
         counters.published += 1
         try:
             # Bounded, because the point of a reading is that it arrives. A
-            # publish on a blocked connection waits rather than failing -- that
-            # is what RabbitMQ does to a connection it has stopped reading -- and
-            # without a timeout the sampler's next line would wait with it. A
-            # client that went quiet then looks exactly like a client that was
-            # never running.
+            # publish made while the broker is blocking the connection is refused
+            # at once, but one already written when the block arrives waits for
+            # the broker to read again, and without a timeout the sampler's next
+            # line would wait with it. A client that went quiet then looks
+            # exactly like a client that was never running.
             await asyncio.wait_for(
                 publisher.send({"order": f"o-{number}"}),
                 timeout=5,
             )
             counters.confirmed += 1
+        except PublishingPausedError:
+            # Declined before anything was written, so this is back pressure
+            # rather than a loss -- the distinction Go, .NET and Java loads
+            # already draw. Before 0.7.4 these were counted as failed.
+            counters.refused += 1
         except asyncio.TimeoutError:
             # Expected while the broker is blocking this connection, and counted
             # rather than hidden: a send that never completed is a fact about the
@@ -164,6 +172,7 @@ async def sample(mq, counters: Counters, stop: asyncio.Event) -> None:
             "published": counters.published,
             "confirmed": counters.confirmed,
             "consumed": counters.consumed,
+            "refused": counters.refused,
             "failed": counters.failed,
         }
 
