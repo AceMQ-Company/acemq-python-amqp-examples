@@ -96,7 +96,7 @@ async def wait_for_close(mq: Connection, _: Consumer) -> bool:
     """An outside bound on a close that would otherwise wait for ever."""
     try:
         return await asyncio.wait_for(mq.close(timeout=None), timeout=0.1)
-    except TimeoutError:
+    except asyncio.TimeoutError:  # the builtin TimeoutError from 3.11 on
         # The deadline is now reported, not swallowed: the handler was
         # cancelled, the connection released, and then TimeoutError raised.
         return False
