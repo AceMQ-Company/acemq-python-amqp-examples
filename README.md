@@ -93,6 +93,7 @@ application's decision.
 | [07-claim-check](intermediate/07-claim-check) | A half-megabyte payload put in a store, 39 bytes on the wire, and the small one still travelling inline. |
 | [08-consumer-groups](intermediate/08-consumer-groups) | Four slow invoices, handled four times faster by four consumers than by one. |
 | [09-schema-evolution](intermediate/09-schema-evolution) | Two services on two versions of one schema, talking to each other anyway. |
+| [10-graceful-shutdown](intermediate/10-graceful-shutdown) | Closing within a grace period — the handler in hand finished when there is time, cut off and redelivered when there is not. |
 
 ### advanced
 
