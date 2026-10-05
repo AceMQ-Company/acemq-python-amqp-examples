@@ -93,7 +93,7 @@ jobs:
         # A memory alarm is broker-wide. advanced/05-blocked-broker raises a
         # real one — that is the whole point of it — and on the shared broker
         # that would stop every other example publishing, including the
-        # fourteen that run after it and the second run of all twenty-one. It
+        # fourteen that run after it and the second run of all of them. It
         # puts the watermark back in a `finally`, and a broker of its own is
         # what makes that a tidy-up rather than the only thing standing between
         # this example and a wall of unrelated red.
@@ -159,7 +159,7 @@ jobs:
           failed=""
           # Every directory holding a main.py, found rather than listed, so an
           # example added without touching this file is still run.
-          for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
+          for dir in $(find basic intermediate advanced apps -name main.py -exec dirname {} \; | sort); do
             echo "::group::$dir"
             if ! .venv/bin/python "$dir/main.py"; then
               failed="$failed $dir"
@@ -185,7 +185,7 @@ jobs:
         run: |
           set -o pipefail
           failed=""
-          for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
+          for dir in $(find basic intermediate advanced apps -name main.py -exec dirname {} \; | sort); do
             .venv/bin/python "$dir/main.py" > /dev/null 2>&1 || failed="$failed $dir"
           done
           if [ -n "$failed" ]; then
@@ -197,9 +197,9 @@ jobs:
         # A find that matches nothing would make the steps above pass without
         # running anything at all, which is the quiet way a suite stops testing.
         run: |
-          count=$(find basic intermediate advanced -name main.py | wc -l | tr -d ' ')
-          if [ "$count" -lt 23 ]; then
-            echo "::error::found only $count examples; expected at least 23"
+          count=$(find basic intermediate advanced apps -name main.py | wc -l | tr -d ' ')
+          if [ "$count" -lt 24 ]; then
+            echo "::error::found only $count examples; expected at least 24"
             exit 1
           fi
           echo "$count examples"
@@ -209,7 +209,7 @@ jobs:
         # for while it runs, which is the half a reader actually needs.
         run: |
           missing=""
-          for dir in $(find basic intermediate advanced -name main.py -exec dirname {} \; | sort); do
+          for dir in $(find basic intermediate advanced apps -name main.py -exec dirname {} \; | sort); do
             [ -f "$dir/README.md" ] || missing="$missing $dir"
           done
           if [ -n "$missing" ]; then

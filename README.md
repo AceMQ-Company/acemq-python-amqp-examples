@@ -10,7 +10,7 @@ Each one is a single `main.py`: open a directory and the whole example is in
 front of you, with no shared helpers to trace, and a `README.md` beside it saying
 what to look for while it runs.
 
-Every one of them talks to a real broker, and CI runs all twenty-one on every push.
+Every one of them talks to a real broker, and CI runs all twenty-four on every push.
 That matters more in Python than in a compiled language: there is no compiler to
 notice a renamed argument, so an example nobody runs is an example nobody knows
 is broken.
@@ -50,7 +50,7 @@ is where the documentation tells you to get the library, so it is where the
 examples get it, and an example that stops working against a release is a red
 build here rather than a surprise for whoever copies it.
 
-All twenty-one resolve it. For a while six of them could not: the optional codecs,
+All of them resolve it. For a while six of them could not: the optional codecs,
 encrypted bodies, development certificates, the saga, the scheduler and the
 OpenTelemetry adapter all landed after 0.3.0 was cut, so those six installed the
 library's `main` branch from a second requirements file and CI ran them under a
@@ -105,6 +105,15 @@ application's decision.
 | [04-tracing](advanced/04-tracing) | A consumer's span joined to the publish that caused it, minutes and processes apart. |
 | [05-blocked-broker](advanced/05-blocked-broker) | A real memory alarm, and a health check that reports `up` in microseconds rather than `down` in three seconds. |
 | [06-a-standing-load-something-else-can-watch](advanced/06-a-standing-load-something-else-can-watch) | A load that does not finish, printing one JSON reading per second — so a fault drill can read what the client saw rather than what the broker did. |
+
+### apps
+
+Several patterns at once, where libraries quietly diverge. Each is a directory
+of services and a `main.py` that starts them all and checks what they claim.
+
+| | |
+|---|---|
+| [01-order-fulfilment](apps/01-order-fulfilment) | Five services, one broker, no shared database — an outbox, an idempotent charge and a retry ladder, mixable with the Java half. |
 
 ## The two that need a broker of their own
 
