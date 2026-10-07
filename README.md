@@ -114,6 +114,8 @@ of services and a `main.py` that starts them all and checks what they claim.
 | | |
 |---|---|
 | [01-order-fulfilment](apps/01-order-fulfilment) | Five services, one broker, no shared database — an outbox, an idempotent charge and a retry ladder, mixable with the Java half. |
+| [02-policy-administration](apps/02-policy-administration) | One process, six modules, one database, events only — an outbox, a declared route, a claim check, an idempotent premium and a lookup with a timeout, mixable with the Java half. |
+| [03-ledger](apps/03-ledger) | An event-sourced ledger on a stream: the journal is the system of record, balances are rebuilt from it, and a restarted writer must agree with itself. Mixable with the Java half. |
 
 ## The two that need a broker of their own
 
