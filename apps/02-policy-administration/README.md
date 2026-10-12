@@ -96,14 +96,15 @@ holds. The default itself is a cross-library decision and has been reported
 rather than changed.
 
 **A handler that raised inside `idempotent()` kept its claim.** Fixed in the
-library (`acemq-python-amqp` 7eea77d, not yet released). Only a handler that
+library in 0.7.9, which this repository now pins. Only a handler that
 *returned* a retry released the key; one that raised — the usual way a Python
 handler fails — left it claimed, so the retry found it "in progress" and the
 message was put back without running until the claim aged out: an hour for the
 in-memory store, five minutes for the SQL one. A probe with one transient
 failure ran its handler once in 15 s instead of twice in 0.16 s. Java releases
-the claim on an exception. Billing here does not raise, so the app is correct on
-0.7.8; a billing handler that hit a database blip would have stalled.
+the claim on an exception, and so does 0.7.9. Billing here does not raise, so
+the app was correct on 0.7.8 too; a billing handler that hit a database blip
+would have stalled there.
 
 **There is no `Pipeline` object.** Java's `mq.pipeline("underwriting", ...)`
 becomes `route_of("underwriting", "register", "price", "decide")`, a

@@ -34,18 +34,19 @@ RETENTION = StreamRetention(max_age=timedelta(hours=1), max_bytes=50 * 1024 * 10
 def journal() -> Topology:
     """The journal, declared the way Java's ``declareStream`` declares it.
 
-    Not :func:`~acemq_amqp.patterns.stream`, which writes this hour as
-    ``x-max-age: 1h``. Java writes ``3600s``, the broker compares the two as
-    strings, and whichever side declares second is refused with
-    ``PRECONDITION_FAILED - inequivalent arg 'x-max-age'``. Spelled out here so a
-    Python writer can start against a journal a Java one created, and the other
-    way round.
+    The hour is written ``x-max-age: 1h``, the spelling every AceMQ library uses
+    (Java and .NET wrote ``3600s`` before acemq-java-amqp 0.7.13 and
+    acemq-dotnet-amqp 0.7.10). The broker compares the argument as a string, so a
+    journal declared with the other spelling is refused with
+    ``PRECONDITION_FAILED - inequivalent arg 'x-max-age'``; delete it and let
+    either side declare it again. Spelled out here so a Python writer can start
+    against a journal a Java one created, and the other way round.
     """
     return Topology().queue(
         JOURNAL,
         args={
             "x-queue-type": "stream",
-            "x-max-age": f"{int(RETENTION.max_age.total_seconds())}s",
+            "x-max-age": "1h",
             "x-max-length-bytes": RETENTION.max_bytes,
         },
     )

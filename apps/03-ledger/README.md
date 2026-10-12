@@ -79,15 +79,15 @@ disagrees with itself after enough additions.
 
 ## What porting it found
 
-**Python and Java spell the journal's retention differently, and the broker
-refuses the second one.** `declare_stream(..., StreamRetention(max_age=1 hour))`
+**Python and Java spelled the journal's retention differently, and the broker
+refused the second one.** `declare_stream(..., StreamRetention(max_age=1 hour))`
 writes `x-max-age: 1h`; Java's `declareStream(name, Duration.ofHours(1), ...)`
-writes `3600s`. RabbitMQ compares the two as strings, so whichever side declares
-second fails with `PRECONDITION_FAILED - inequivalent arg 'x-max-age'`. Found by
-the mixed run below. The libraries split three to two — Go, Python and Ruby use
-the largest whole unit, Java and .NET always write seconds — so it is reported
-rather than changed in one of them. `contracts.journal()` declares the journal
-with Java's spelling so this app mixes; with the library's own call it would not.
+wrote `3600s`. RabbitMQ compares the two as strings, so whichever side declared
+second failed with `PRECONDITION_FAILED - inequivalent arg 'x-max-age'`. Found by
+the mixed run below. The whole family now writes the largest whole unit — `1h`
+here — from acemq-java-amqp 0.7.13 and acemq-dotnet-amqp 0.7.10 on, and
+`contracts.journal()` declares the journal as `1h` too. A journal an earlier Java
+or .NET release created still carries `3600s`; delete it and declare it again.
 
 **`read_stream` declares `ledger.journal.dlq` and `.parked` unless told not to.**
 Not a bug, but worth knowing: the projections and the rebuild pass
