@@ -62,10 +62,19 @@ in the parts, because there was not one. The check at the bottom is the one that
 would catch that regression — it fails if the blocked report carries a
 `round-trip`, or if it took longer than a quarter of a second.
 
-**`1 of 1 stalled publishes went through`.** The publishes made during the alarm
-never failed and were never lost. They waited, and were confirmed once the
-broker started reading the socket again. That is the behaviour the `up` report
-is protecting: there was something in flight worth not throwing away.
+**`1 of 1 stalled publishes went through`.** The publishes written as the alarm
+landed were not lost. They waited, and were confirmed once the broker started
+reading the socket again. That is the behaviour the `up` report is protecting:
+there was something in flight worth not throwing away.
+
+The wait is bounded. A written publish waits for its confirm for up to
+`confirm_timeout` — ten seconds by default — and this alarm lasts a second or
+two, so the confirm arrives in time. An alarm that outlasts it fails the publish
+with `PublishError`, counted `failed` rather than `refused`, because it was
+written and may or may not have been stored. Before 0.7.12 that wait had no
+bound, and a publish into a broker that stayed blocked hung until the alarm
+cleared. The publish made once the block is known is still refused at once with
+`PublishingPausedError`: nothing was sent, so retrying it cannot duplicate it.
 
 ## Where Python differs from the rest of the family
 

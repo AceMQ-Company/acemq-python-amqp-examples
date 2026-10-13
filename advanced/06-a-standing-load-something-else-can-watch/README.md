@@ -16,10 +16,13 @@ fault drill breaks the cluster underneath.
   is a different fact from `False`. A reader that finds no `blocked` knows the client
   could not say; one that finds `false` knows it said no. Collapsing the two would let
   a transport that cannot report back-pressure look like one that never met any.
-- **Publishes bounded by a timeout.** A publish on a blocked connection does not
-  fail — it waits, because RabbitMQ has stopped reading the socket. Without a
-  deadline the sampler would wait with it, and a client that went quiet looks exactly
-  like a client that was never running.
+- **Publishes bounded by a timeout.** A publish made once the connection is known to
+  be blocked is refused at once and counted `refused`. One already written when the
+  block lands waits for its confirm, because RabbitMQ has stopped reading the socket.
+  Since 0.7.12 the library ends that wait itself after `confirm_timeout` (ten seconds)
+  with `PublishError`; the load's own five-second deadline comes first, and either way
+  the send is counted `failed`, because it was written and may have arrived. A client
+  that went quiet looks exactly like a client that was never running.
 - **Deltas, not just totals.** `publishRate` and `consumeRate` cover the last
   interval, because a total on its own cannot tell a client that is working from one
   that worked earlier and has since stopped.

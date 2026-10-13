@@ -127,9 +127,11 @@ async def publish(mq, counters: Counters, stop: asyncio.Event) -> None:
             # Bounded, because the point of a reading is that it arrives. A
             # publish made while the broker is blocking the connection is refused
             # at once, but one already written when the block arrives waits for
-            # the broker to read again, and without a timeout the sampler's next
-            # line would wait with it. A client that went quiet then looks
-            # exactly like a client that was never running.
+            # its confirm. Since 0.7.12 the library bounds that wait itself, at
+            # `confirm_timeout` (ten seconds), and raises `PublishError`; five
+            # seconds here keeps the publish loop at its rate rather than
+            # stalling it for ten. A client that went quiet looks exactly like
+            # a client that was never running.
             await asyncio.wait_for(
                 publisher.send({"order": f"o-{number}"}),
                 timeout=5,

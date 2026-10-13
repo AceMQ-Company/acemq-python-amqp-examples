@@ -3,10 +3,13 @@
 RabbitMQ protects itself. When it crosses its memory or disk high watermark it
 raises an alarm and stops reading from every connection that publishes:
 `connection.blocked` goes out, and from then on anything written to that socket
-simply waits. Nothing fails. Nothing arrives either. A publish *made* once the
-block is known is not written at all: it is refused at once with
-`PublishingPausedError`, which says nothing was sent and a retry is safe -- the
-same answer Go, .NET and Java give.
+waits. A publish already written when the block lands waits for its confirm for
+up to `confirm_timeout` (ten seconds by default) and is confirmed if the alarm
+clears inside that; if it does not, the publish raises `PublishError`, which
+says it was written and may or may not have arrived. Before 0.7.12 that wait had
+no bound at all. A publish *made* once the block is known is not written at
+all: it is refused at once with `PublishingPausedError`, which says nothing was
+sent and a retry is safe -- the same answer Go, .NET and Java give.
 
 That state is the one a readiness probe gets wrong, because from this end it
 looks exactly like a broker that has gone away — and the two want opposite
@@ -108,9 +111,10 @@ async def main() -> None:
         try:
             # Fired rather than awaited, which is the whole shape of the
             # problem. A publish already written when the block arrives does
-            # not fail, it waits — so awaiting one here would wait for the
-            # alarm this loop exists to observe. They are collected and settled further down,
-            # once the socket is being read again.
+            # not fail at once, it waits for its confirm — so awaiting one here
+            # would wait for the alarm this loop exists to observe. They are
+            # collected and settled further down, once the socket is being read
+            # again, which here is well inside `confirm_timeout`.
             deadline = time.monotonic() + 30
             while not mq.blocked and time.monotonic() < deadline:
                 order = {"order": f"during the alarm {len(stalled)}"}
@@ -161,8 +165,10 @@ async def main() -> None:
         while mq.blocked and time.monotonic() < clear_by:
             await asyncio.sleep(0.25)
 
-        # The publishes that were waiting are confirmed now, which is the point
-        # of a block not being an error: they were never lost, only paused.
+        # The publishes that were waiting are confirmed now, because this alarm
+        # lasted a second or two: they were paused, not lost. An alarm that
+        # outlasted `confirm_timeout` would fail them with `PublishError` instead
+        # — written, so possibly stored — and the line below would say so.
         settled = await asyncio.gather(*stalled, return_exceptions=True)
         failed = [answer for answer in settled if isinstance(answer, BaseException)]
         print(f"{len(settled) - len(failed)} of {len(settled)} stalled publishes went through")
