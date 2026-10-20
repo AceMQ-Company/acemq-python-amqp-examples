@@ -85,18 +85,18 @@ Any broken claim prints what was expected and what happened, and the run exits 1
 
 ## What porting it found
 
-**Python's publishers are not mandatory by default; Java's are.** The Java
-README's best story is that `claim.settled` and `document.stored` were published
-with nothing bound to them, and the library refused rather than losing them —
-that is why the audit queue exists. Java's `PublishOptions.defaults()` is
-mandatory. Python's `mq.publisher(...)` is not: the same mistake here succeeds
-and the broker drops the message, with `result.routed` false and nobody reading
-it. Every publisher in this app passes `mandatory=True` so the Java behaviour
-holds. The default itself is a cross-library decision and has been reported
-rather than changed.
+**Python's publishers were not mandatory by default until 0.7.14; Java's always
+were.** The Java README's best story is that `claim.settled` and
+`document.stored` were published with nothing bound to them, and the library
+refused rather than losing them — that is why the audit queue exists. Java's
+`PublishOptions.defaults()` is mandatory. Before acemq-amqp 0.7.14 Python's
+`mq.publisher(...)` was not: the same mistake succeeded and the broker dropped
+the message, with `result.routed` false and nobody reading it. Since 0.7.14
+Python's publishers are mandatory by default too, and `mandatory=False` opts
+out. Every publisher in this app still passes `mandatory=True` explicitly.
 
 **A handler that raised inside `idempotent()` kept its claim.** Fixed in the
-library in 0.7.9; this repository pins 0.7.13. Only a handler that
+library in 0.7.9; this repository pins 0.7.14. Only a handler that
 *returned* a retry released the key; one that raised — the usual way a Python
 handler fails — left it claimed, so the retry found it "in progress" and the
 message was put back without running until the claim aged out: an hour for the

@@ -46,8 +46,8 @@ CLAIMS = "policy.claims"
 
 #: Everything, for the audit trail. Not decoration: without it claims and
 #: documents publish events nothing is bound to. Java's publisher refuses those
-#: by default; Python's drops them unless it is asked to be ``mandatory``, which
-#: every publisher in this application is.
+#: by default, and so does Python's from 0.7.14 on; before that it dropped them
+#: unless asked to be ``mandatory``, which every publisher here still is.
 AUDIT = "policy.audit"
 
 #: Where claims asks policies whether a policy is in force. Request/reply.
