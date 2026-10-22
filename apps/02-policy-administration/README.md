@@ -96,7 +96,7 @@ Python's publishers are mandatory by default too, and `mandatory=False` opts
 out. Every publisher in this app still passes `mandatory=True` explicitly.
 
 **A handler that raised inside `idempotent()` kept its claim.** Fixed in the
-library in 0.7.9; this repository pins 0.7.14. Only a handler that
+library in 0.7.9; this repository pins 0.7.15. Only a handler that
 *returned* a retry released the key; one that raised — the usual way a Python
 handler fails — left it claimed, so the retry found it "in progress" and the
 message was put back without running until the claim aged out: an hour for the
@@ -106,18 +106,18 @@ the claim on an exception, and so does 0.7.9. Billing here does not raise, so
 the app was correct on 0.7.8 too; a billing handler that hit a database blip
 would have stalled there.
 
-**There is no `Pipeline` object.** Java's `mq.pipeline("underwriting", ...)`
+**A declared route, not `mq.pipeline(...)`.** Java's `mq.pipeline("underwriting", ...)`
 becomes `route_of("underwriting", "register", "price", "decide")`, a
 `follow_slip` consumer per stage, and the topology Java's pipeline declares: a
 direct exchange named `underwriting`, quorum queues `underwriting.<step>` bound
 on the step name, and the register stage's retry rungs. The step descriptions
-Java logs at start-up are printed by `main.py`. One thing has no equivalent: a
-Java step that returns `null` before the last stop ends the run early and counts
-it as `ended_early`. A Python routing-slip step cannot — returning `None` sends
-`null` to the next stage, and returning `NOTHING` dead-letters the message
-because it cannot be encoded. The library documents the gap
-(`OUTCOME_ENDED_EARLY`). Underwriting ends every run at its last stage, so it
-does not arise here.
+Java logs at start-up are printed by `main.py`. Since acemq-amqp 0.7.15 Python
+has `mq.pipeline(name).step(...).build()` too, which declares the same
+topology; this app keeps the hand-built route, which shows the parts. Also
+since 0.7.15, a step that returns `NOTHING` before the last stop ends the run
+early and counts it as `ended_early`, as a Java step that returns `null` does;
+before that `NOTHING` was sent on, failed to encode and was retried.
+Underwriting ends every run at its last stage, so it does not arise here.
 
 ## Mixing it with the Java half
 

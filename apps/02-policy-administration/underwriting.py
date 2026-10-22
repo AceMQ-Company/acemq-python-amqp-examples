@@ -5,9 +5,10 @@ applicant against the register, price the risk, then decide. Each stage can fail
 and be slow for its own reasons, so each gets a queue — a slow stage shows up as
 a deep queue you can point at.
 
-Java builds this with ``mq.pipeline("underwriting", ...)``. Python has no
-pipeline object; the same thing is a declared route — :func:`route_of` — and a
-:func:`follow_slip` consumer per stage. The topology is Java's to the letter: a
+Java builds this with ``mq.pipeline("underwriting", ...)``, and so can Python
+since acemq-amqp 0.7.15. This app keeps the hand-built form, which shows the
+parts: a declared route — :func:`route_of` — and a :func:`follow_slip` consumer
+per stage. The topology is Java's to the letter: a
 direct exchange named after the pipeline, one quorum queue per step called
 ``underwriting.<step>``, bound on the step's name. The route travels on the
 message in Java's step-names form, so a Java stage could take any of these
