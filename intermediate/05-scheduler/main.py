@@ -64,6 +64,15 @@ async def main() -> None:
             while len(arrived) < 3:
                 await asyncio.sleep(0.2)
 
+            # The scheduler counts a delivery when the broker confirms it, and
+            # the broker can hand the message to the consumer above before that
+            # confirm gets back. So the third arrival can come a moment before
+            # the third count; nothing is lost, so give the count a moment.
+            for _ in range(500):
+                if scheduler.delivered >= 3:
+                    break
+                await asyncio.sleep(0.01)
+
             print(f"delivered {scheduler.delivered} after {scheduler.hops} hops")
 
         for reminder, seconds in arrived:
