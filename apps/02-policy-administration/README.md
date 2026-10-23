@@ -96,7 +96,7 @@ Python's publishers are mandatory by default too, and `mandatory=False` opts
 out. Every publisher in this app still passes `mandatory=True` explicitly.
 
 **A handler that raised inside `idempotent()` kept its claim.** Fixed in the
-library in 0.7.9; this repository pins 0.7.16. Only a handler that
+library in 0.7.9; this repository pins 0.7.17. Only a handler that
 *returned* a retry released the key; one that raised — the usual way a Python
 handler fails — left it claimed, so the retry found it "in progress" and the
 message was put back without running until the claim aged out: an hour for the
